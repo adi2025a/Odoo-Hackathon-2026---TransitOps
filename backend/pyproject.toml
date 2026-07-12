@@ -1,0 +1,15 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "bcrypt>=5.0.0",
+    "dotenv>=0.9.9",
+    "fastapi>=0.139.0",
+    "pydantic>=2.13.4",
+    "python-jose>=3.5.0",
+    "resend>=2.32.2",
+    "sqlalchemy>=2.0.51",
+]
