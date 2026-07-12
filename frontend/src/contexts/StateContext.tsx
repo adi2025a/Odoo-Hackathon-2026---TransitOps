@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { generateMockData, Vehicle, Driver, Trip, FuelLog, Expense, MaintenanceRecord, Notification } from '../services/mockDb';
+import { useAuth } from './AuthContext';
+import { Vehicle, Driver, Trip, FuelLog, Expense, MaintenanceRecord, Notification } from '../services/mockDb';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 interface StateContextType {
   vehicles: Vehicle[];
@@ -9,41 +12,52 @@ interface StateContextType {
   expenses: Expense[];
   maintenanceRecords: MaintenanceRecord[];
   notifications: Notification[];
+  loading: boolean;
   
   // Vehicles CRUD
-  addVehicle: (v: Omit<Vehicle, 'id' | 'status' | 'assignedDriverId' | 'photoColor'>) => void;
-  updateVehicle: (id: string, v: Partial<Vehicle>) => void;
-  deleteVehicle: (id: string) => void;
+  addVehicle: (v: Omit<Vehicle, 'id' | 'status' | 'assignedDriverId' | 'photoColor'>) => Promise<void>;
+  updateVehicle: (id: string, v: Partial<Vehicle>) => Promise<void>;
+  deleteVehicle: (id: string) => Promise<void>;
   
   // Drivers CRUD
-  addDriver: (d: Omit<Driver, 'id' | 'status' | 'currentVehicleId' | 'safetyScore'>) => void;
-  updateDriver: (id: string, d: Partial<Driver>) => void;
-  deleteDriver: (id: string) => void;
+  addDriver: (d: Omit<Driver, 'id' | 'status' | 'currentVehicleId' | 'safetyScore'>) => Promise<void>;
+  updateDriver: (id: string, d: Partial<Driver>) => Promise<void>;
+  deleteDriver: (id: string) => Promise<void>;
   
   // Trips CRUD
-  addTrip: (t: Omit<Trip, 'id' | 'status' | 'timeline'>) => void;
-  updateTripStatus: (id: string, status: Trip['status'], completionData?: Trip['completionData']) => void;
-  cancelTrip: (id: string) => void;
+  addTrip: (t: Omit<Trip, 'id' | 'status' | 'timeline'>) => Promise<void>;
+  updateTripStatus: (id: string, status: Trip['status'], completionData?: Trip['completionData']) => Promise<void>;
+  cancelTrip: (id: string) => Promise<void>;
   
   // Maintenance CRUD
-  addMaintenanceRecord: (r: Omit<MaintenanceRecord, 'id'>) => void;
-  updateMaintenanceRecord: (id: string, r: Partial<MaintenanceRecord>) => void;
+  addMaintenanceRecord: (r: Omit<MaintenanceRecord, 'id'>) => Promise<void>;
+  updateMaintenanceRecord: (id: string, r: Partial<MaintenanceRecord>) => Promise<void>;
   
   // Fuel Logs CRUD
-  addFuelLog: (l: Omit<FuelLog, 'id'>) => void;
+  addFuelLog: (l: Omit<FuelLog, 'id'>) => Promise<void>;
   
   // Expenses CRUD
-  addExpense: (e: Omit<Expense, 'id'>) => void;
+  addExpense: (e: Omit<Expense, 'id'>) => Promise<void>;
   
   // Notifications CRUD
-  markNotificationRead: (id: string) => void;
-  markAllNotificationsRead: () => void;
-  addNotification: (n: Omit<Notification, 'id' | 'read' | 'date'>) => void;
+  markNotificationRead: (id: string) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
+  addNotification: (n: Omit<Notification, 'id' | 'read' | 'date'>) => Promise<void>;
 }
 
 const StateContext = createContext<StateContextType | undefined>(undefined);
 
+// Helper mapper to convert MongoDB _id to frontend component expected id
+const mapItem = <T extends { _id?: string; id?: string }>(item: T): T & { id: string } => {
+  return {
+    ...item,
+    id: item._id || item.id || '',
+  } as T & { id: string };
+};
+
 export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { token, isAuthenticated } = useAuth();
+  
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -51,382 +65,240 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  // Load or generate initial seed data
-  useEffect(() => {
-    const savedData = localStorage.getItem('transitops-data');
-    if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData);
-        setVehicles(parsed.vehicles || []);
-        setDrivers(parsed.drivers || []);
-        setTrips(parsed.trips || []);
-        setFuelLogs(parsed.fuelLogs || []);
-        setExpenses(parsed.expenses || []);
-        setMaintenanceRecords(parsed.maintenanceRecords || []);
-        setNotifications(parsed.notifications || []);
-      } catch (e) {
-        console.error("Failed to parse local storage, regenerating data", e);
-        const data = generateMockData();
-        saveAndSet(data);
-      }
-    } else {
-      const data = generateMockData();
-      saveAndSet(data);
+  // General wrapper for authenticated API requests
+  const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
+    if (!token) throw new Error("Not authenticated");
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      ...options.headers,
+    };
+    const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'API Request failed');
     }
-  }, []);
-
-  const saveAndSet = (data: {
-    vehicles: Vehicle[];
-    drivers: Driver[];
-    trips: Trip[];
-    fuelLogs: FuelLog[];
-    expenses: Expense[];
-    maintenanceRecords: MaintenanceRecord[];
-    notifications: Notification[];
-  }) => {
-    setVehicles(data.vehicles);
-    setDrivers(data.drivers);
-    setTrips(data.trips);
-    setFuelLogs(data.fuelLogs);
-    setExpenses(data.expenses);
-    setMaintenanceRecords(data.maintenanceRecords);
-    setNotifications(data.notifications);
-    localStorage.setItem('transitops-data', JSON.stringify(data));
+    return data.data;
   };
 
-  // Persist triggers on any state change
-  const saveState = (
-    vList = vehicles, 
-    dList = drivers, 
-    tList = trips, 
-    fList = fuelLogs, 
-    eList = expenses, 
-    mList = maintenanceRecords, 
-    nList = notifications
-  ) => {
-    localStorage.setItem('transitops-data', JSON.stringify({
-      vehicles: vList,
-      drivers: dList,
-      trips: tList,
-      fuelLogs: fList,
-      expenses: eList,
-      maintenanceRecords: mList,
-      notifications: nList
-    }));
+  // Load all dashboard collections from the Node.js backend
+  const loadBackendData = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const [vData, dData, tData, fData, eData, mData, nData] = await Promise.all([
+        apiRequest('/vehicles?limit=1000'),
+        apiRequest('/drivers?limit=1000'),
+        apiRequest('/trips?limit=1000'),
+        apiRequest('/fuel?limit=1000'),
+        apiRequest('/expenses?limit=1000'),
+        apiRequest('/maintenance?limit=1000'),
+        apiRequest('/notifications?limit=1000')
+      ]);
+
+      setVehicles((vData || []).map(mapItem));
+      setDrivers((dData || []).map(mapItem));
+      setTrips((tData || []).map(mapItem));
+      setFuelLogs((fData || []).map(mapItem));
+      setExpenses((eData || []).map(mapItem));
+      setMaintenanceRecords((mData || []).map(mapItem));
+      setNotifications((nData || []).map(mapItem));
+    } catch (e) {
+      console.error("Failed to fetch dashboard data from server:", e);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      loadBackendData();
+    } else {
+      // Clear data on logout
+      setVehicles([]);
+      setDrivers([]);
+      setTrips([]);
+      setFuelLogs([]);
+      setExpenses([]);
+      setMaintenanceRecords([]);
+      setNotifications([]);
+    }
+  }, [isAuthenticated, token]);
 
   // --- VEHICLES CRUD ---
-  const addVehicle = (v: Omit<Vehicle, 'id' | 'status' | 'assignedDriverId' | 'photoColor'>) => {
-    const newId = `VEH-${1000 + vehicles.length + 1}`;
+  const addVehicle = async (v: Omit<Vehicle, 'id' | 'status' | 'assignedDriverId' | 'photoColor'>) => {
+    const nextNum = vehicles.length + 1;
     const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-red-500', 'bg-violet-500', 'bg-cyan-500', 'bg-amber-500', 'bg-orange-500'];
-    const newVehicle: Vehicle = {
+    const payload = {
+      id: `VEH-${1000 + nextNum}`,
       ...v,
-      id: newId,
-      status: 'Available',
-      assignedDriverId: null,
-      photoColor: colors[Math.floor(Math.random() * colors.length)]
+      photoColor: colors[nextNum % colors.length]
     };
-    const updated = [newVehicle, ...vehicles];
-    setVehicles(updated);
-    saveState(updated);
+    const created = await apiRequest('/vehicles', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    setVehicles(prev => [mapItem(created), ...prev]);
   };
 
-  const updateVehicle = (id: string, updatedFields: Partial<Vehicle>) => {
-    const updated = vehicles.map(v => v.id === id ? { ...v, ...updatedFields } : v);
-    setVehicles(updated);
-    saveState(updated);
+  const updateVehicle = async (id: string, updatedFields: Partial<Vehicle>) => {
+    const updated = await apiRequest(`/vehicles/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updatedFields),
+    });
+    setVehicles(prev => prev.map(v => v.id === id ? mapItem(updated) : v));
   };
 
-  const deleteVehicle = (id: string) => {
-    const updated = vehicles.filter(v => v.id !== id);
-    setVehicles(updated);
-    saveState(updated);
+  const deleteVehicle = async (id: string) => {
+    await apiRequest(`/vehicles/${id}`, {
+      method: 'DELETE',
+    });
+    setVehicles(prev => prev.map(v => v.id === id ? { ...v, status: 'Retired' } : v));
   };
 
   // --- DRIVERS CRUD ---
-  const addDriver = (d: Omit<Driver, 'id' | 'status' | 'currentVehicleId' | 'safetyScore'>) => {
-    const newId = `DRV-${1000 + drivers.length + 1}`;
-    const newDriver: Driver = {
+  const addDriver = async (d: Omit<Driver, 'id' | 'status' | 'currentVehicleId' | 'safetyScore'>) => {
+    const nextNum = drivers.length + 1;
+    const payload = {
+      id: `DRV-${1000 + nextNum}`,
       ...d,
-      id: newId,
-      status: 'Available',
-      safetyScore: 95, // default starting score
-      currentVehicleId: null
+      safetyScore: 90
     };
-    const updated = [newDriver, ...drivers];
-    setDrivers(updated);
-    saveState(undefined, updated);
+    const created = await apiRequest('/drivers', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    setDrivers(prev => [mapItem(created), ...prev]);
   };
 
-  const updateDriver = (id: string, updatedFields: Partial<Driver>) => {
-    const updated = drivers.map(d => d.id === id ? { ...d, ...updatedFields } : d);
-    setDrivers(updated);
-    saveState(undefined, updated);
+  const updateDriver = async (id: string, updatedFields: Partial<Driver>) => {
+    const updated = await apiRequest(`/drivers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updatedFields),
+    });
+    setDrivers(prev => prev.map(d => d.id === id ? mapItem(updated) : d));
   };
 
-  const deleteDriver = (id: string) => {
-    const updated = drivers.filter(d => d.id !== id);
-    setDrivers(updated);
-    saveState(undefined, updated);
+  const deleteDriver = async (id: string) => {
+    await apiRequest(`/drivers/${id}`, {
+      method: 'DELETE',
+    });
+    setDrivers(prev => prev.filter(d => d.id !== id));
   };
 
   // --- TRIPS CRUD ---
-  const addTrip = (t: Omit<Trip, 'id' | 'status' | 'timeline'>) => {
-    const newId = `TRP-${2000 + trips.length + 1}`;
-    const newTrip: Trip = {
+  const addTrip = async (t: Omit<Trip, 'id' | 'status' | 'timeline'>) => {
+    const nextNum = trips.length + 1;
+    const payload = {
+      id: `TRP-${2000 + nextNum}`,
       ...t,
-      id: newId,
-      status: 'Dispatched', // Auto dispatch when wizard submits
-      timeline: [
-        {
-          time: new Date().toISOString(),
-          title: 'Trip Dispatched',
-          description: `Trip scheduled from ${t.source} to ${t.destination}`
-        }
-      ]
+      status: 'Dispatched',
     };
-
-    // Update vehicle and driver status immediately to 'On Trip'
-    const updatedVehicles = vehicles.map(v => v.id === t.vehicleId ? { ...v, status: 'On Trip' as const, assignedDriverId: t.driverId } : v);
-    const updatedDrivers = drivers.map(d => d.id === t.driverId ? { ...d, status: 'On Trip' as const, currentVehicleId: t.vehicleId } : d);
-    const updatedTrips = [newTrip, ...trips];
-
-    setVehicles(updatedVehicles);
-    setDrivers(updatedDrivers);
-    setTrips(updatedTrips);
-    
-    // Add expense record for the cargo dispatcher if any tolls/fees are standard
-    saveState(updatedVehicles, updatedDrivers, updatedTrips);
-  };
-
-  const updateTripStatus = (id: string, status: Trip['status'], completionData?: Trip['completionData']) => {
-    const tripToUpdate = trips.find(t => t.id === id);
-    if (!tripToUpdate) return;
-
-    let updatedVehicles = [...vehicles];
-    let updatedDrivers = [...drivers];
-    let updatedFuelLogs = [...fuelLogs];
-    let updatedExpenses = [...expenses];
-
-    const updatedTrips = trips.map(t => {
-      if (t.id === id) {
-        const events = [...t.timeline];
-        events.push({
-          time: new Date().toISOString(),
-          title: status,
-          description: status === 'Completed' 
-            ? `Trip completed. final odometer: ${completionData?.finalOdometer}km.`
-            : `Trip status changed to ${status}`
-        });
-
-        // Reconcile status back to Available
-        if (status === 'Completed' || status === 'Cancelled') {
-          updatedVehicles = vehicles.map(v => 
-            v.id === t.vehicleId 
-              ? { 
-                  ...v, 
-                  status: 'Available' as const, 
-                  odometer: completionData?.finalOdometer || v.odometer 
-                } 
-              : v
-          );
-          updatedDrivers = drivers.map(d => 
-            d.id === t.driverId 
-              ? { ...d, status: 'Available' as const } 
-              : d
-          );
-
-          // Add fuel log if provided
-          if (status === 'Completed' && completionData) {
-            const fuelLogId = `FUL-${3000 + fuelLogs.length + 1}`;
-            const fuelQuantity = completionData.fuelUsed;
-            const fuelCost = Math.floor(fuelQuantity * 1.35); // mock fuel price
-            
-            const newFuelLog: FuelLog = {
-              id: fuelLogId,
-              vehicleId: t.vehicleId,
-              tripId: t.id,
-              driverId: t.driverId,
-              fuelQuantity,
-              fuelCost,
-              station: 'Shell Depo #1',
-              date: new Date().toISOString(),
-              odometer: completionData.finalOdometer
-            };
-            updatedFuelLogs = [newFuelLog, ...fuelLogs];
-
-            // Add to expenses too
-            const expenseId = `EXP-${4000 + expenses.length + 1}`;
-            const newExpense: Expense = {
-              id: expenseId,
-              vehicleId: t.vehicleId,
-              category: 'Fuel',
-              amount: fuelCost,
-              date: new Date().toISOString(),
-              description: `Fuel cost for Trip ${t.id}`,
-              status: 'Approved'
-            };
-            
-            let extraExpense: Expense | null = null;
-            if (completionData.expenses > 0) {
-              const extraExpId = `EXP-${4000 + expenses.length + 2}`;
-              extraExpense = {
-                id: extraExpId,
-                vehicleId: t.vehicleId,
-                category: 'Toll',
-                amount: completionData.expenses,
-                date: new Date().toISOString(),
-                description: `Tolls/Misc for Trip ${t.id}`,
-                status: 'Approved'
-              };
-            }
-            updatedExpenses = extraExpense 
-              ? [extraExpense, newExpense, ...expenses]
-              : [newExpense, ...expenses];
-          }
-        }
-
-        return {
-          ...t,
-          status,
-          timeline: events,
-          completionData
-        };
-      }
-      return t;
+    const created = await apiRequest('/trips', {
+      method: 'POST',
+      body: JSON.stringify(payload),
     });
-
-    setVehicles(updatedVehicles);
-    setDrivers(updatedDrivers);
-    setTrips(updatedTrips);
-    setFuelLogs(updatedFuelLogs);
-    setExpenses(updatedExpenses);
     
-    saveState(updatedVehicles, updatedDrivers, updatedTrips, updatedFuelLogs, updatedExpenses);
+    // Refresh all state to accurately reflect vehicle status and driver status changes
+    await loadBackendData();
   };
 
-  const cancelTrip = (id: string) => {
-    updateTripStatus(id, 'Cancelled');
+  const updateTripStatus = async (id: string, status: Trip['status'], completionData?: Trip['completionData']) => {
+    await apiRequest(`/trips/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, completionData }),
+    });
+    
+    // Refresh state to reflect trip, vehicle, driver, and expense log updates
+    await loadBackendData();
+  };
+
+  const cancelTrip = async (id: string) => {
+    await updateTripStatus(id, 'Cancelled');
   };
 
   // --- MAINTENANCE CRUD ---
-  const addMaintenanceRecord = (r: Omit<MaintenanceRecord, 'id'>) => {
-    const newId = `MNT-${5000 + maintenanceRecords.length + 1}`;
-    const newRecord: MaintenanceRecord = {
+  const addMaintenanceRecord = async (r: Omit<MaintenanceRecord, 'id'>) => {
+    const nextNum = maintenanceRecords.length + 1;
+    const payload = {
+      id: `MNT-${5000 + nextNum}`,
       ...r,
-      id: newId
     };
-
-    // If starting maintenance now, change vehicle status to In Shop / Maintenance
-    let updatedVehicles = [...vehicles];
-    if (r.status === 'Active') {
-      updatedVehicles = vehicles.map(v => v.id === r.vehicleId ? { ...v, status: 'Maintenance' as const } : v);
-      setVehicles(updatedVehicles);
-    }
-
-    const updatedRecords = [newRecord, ...maintenanceRecords];
-    setMaintenanceRecords(updatedRecords);
-
-    // Add maintenance expense
-    const expenseId = `EXP-${4000 + expenses.length + 1}`;
-    const newExpense: Expense = {
-      id: expenseId,
-      vehicleId: r.vehicleId,
-      category: 'Maintenance',
-      amount: r.cost,
-      date: r.startDate,
-      description: `Service type: ${r.type}. Shop: ${r.mechanicDetails}`,
-      status: 'Approved'
-    };
-    const updatedExpenses = [newExpense, ...expenses];
-    setExpenses(updatedExpenses);
-
-    saveState(updatedVehicles, undefined, undefined, undefined, updatedExpenses, updatedRecords);
+    await apiRequest('/maintenance', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    
+    await loadBackendData();
   };
 
-  const updateMaintenanceRecord = (id: string, updatedFields: Partial<MaintenanceRecord>) => {
-    let updatedVehicles = [...vehicles];
-    const updatedRecords = maintenanceRecords.map(r => {
-      if (r.id === id) {
-        const updatedRec = { ...r, ...updatedFields };
-        if (updatedFields.status === 'Completed') {
-          // Change vehicle back to Available
-          updatedVehicles = vehicles.map(v => v.id === r.vehicleId ? { ...v, status: 'Available' as const } : v);
-          setVehicles(updatedVehicles);
-        }
-        return updatedRec;
-      }
-      return r;
+  const updateMaintenanceRecord = async (id: string, updatedFields: Partial<MaintenanceRecord>) => {
+    await apiRequest(`/maintenance/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updatedFields),
     });
-
-    setMaintenanceRecords(updatedRecords);
-    saveState(updatedVehicles, undefined, undefined, undefined, undefined, updatedRecords);
+    
+    await loadBackendData();
   };
 
   // --- FUEL LOGS CRUD ---
-  const addFuelLog = (l: Omit<FuelLog, 'id'>) => {
-    const newId = `FUL-${3000 + fuelLogs.length + 1}`;
-    const newLog: FuelLog = {
+  const addFuelLog = async (l: Omit<FuelLog, 'id'>) => {
+    const nextNum = fuelLogs.length + 1;
+    const payload = {
+      id: `FUL-${3000 + nextNum}`,
       ...l,
-      id: newId
     };
-    const updated = [newLog, ...fuelLogs];
-    setFuelLogs(updated);
-
-    // Also add to expenses
-    const expenseId = `EXP-${4000 + expenses.length + 1}`;
-    const newExpense: Expense = {
-      id: expenseId,
-      vehicleId: l.vehicleId,
-      category: 'Fuel',
-      amount: l.fuelCost,
-      date: l.date,
-      description: `Fuel top-up at ${l.station}`,
-      status: 'Approved'
-    };
-    const updatedExpenses = [newExpense, ...expenses];
-    setExpenses(updatedExpenses);
-
-    saveState(undefined, undefined, undefined, updated, updatedExpenses);
+    await apiRequest('/fuel', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    
+    await loadBackendData();
   };
 
   // --- EXPENSES CRUD ---
-  const addExpense = (e: Omit<Expense, 'id'>) => {
-    const newId = `EXP-${4000 + expenses.length + 1}`;
-    const newExpense: Expense = {
+  const addExpense = async (e: Omit<Expense, 'id'>) => {
+    const nextNum = expenses.length + 1;
+    const payload = {
+      id: `EXP-${4000 + nextNum}`,
       ...e,
-      id: newId
     };
-    const updated = [newExpense, ...expenses];
-    setExpenses(updated);
-    saveState(undefined, undefined, undefined, undefined, updated);
+    await apiRequest('/expenses', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    
+    await loadBackendData();
   };
 
   // --- NOTIFICATIONS CRUD ---
-  const markNotificationRead = (id: string) => {
-    const updated = notifications.map(n => n.id === id ? { ...n, read: true } : n);
-    setNotifications(updated);
-    saveState(undefined, undefined, undefined, undefined, undefined, undefined, updated);
+  const markNotificationRead = async (id: string) => {
+    await apiRequest(`/notifications/${id}/read`, {
+      method: 'PATCH',
+    });
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
-  const markAllNotificationsRead = () => {
-    const updated = notifications.map(n => ({ ...n, read: true }));
-    setNotifications(updated);
-    saveState(undefined, undefined, undefined, undefined, undefined, undefined, updated);
+  const markAllNotificationsRead = async () => {
+    await apiRequest('/notifications/read-all', {
+      method: 'PATCH',
+    });
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  const addNotification = (n: Omit<Notification, 'id' | 'read' | 'date'>) => {
-    const newId = `NTF-${6000 + notifications.length + 1}`;
-    const newNotif: Notification = {
+  const addNotification = async (n: Omit<Notification, 'id' | 'read' | 'date'>) => {
+    const nextNum = notifications.length + 1;
+    const payload = {
+      id: `NTF-${6000 + nextNum}`,
       ...n,
-      id: newId,
-      read: false,
-      date: new Date().toISOString()
     };
-    const updated = [newNotif, ...notifications];
-    setNotifications(updated);
-    saveState(undefined, undefined, undefined, undefined, undefined, undefined, updated);
+    const created = await apiRequest('/notifications', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    setNotifications(prev => [mapItem(created), ...prev]);
   };
 
   return (
@@ -439,6 +311,7 @@ export const StateProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         expenses,
         maintenanceRecords,
         notifications,
+        loading,
         addVehicle,
         updateVehicle,
         deleteVehicle,
