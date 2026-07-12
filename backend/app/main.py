@@ -1,5 +1,7 @@
 
 from dotenv import load_dotenv
+
+from backend.app.routers import vehicle_router
 load_dotenv()  # Load environment variables from .env file
 
 from app.core.logging_config import setup_logging
@@ -39,6 +41,7 @@ def get_health():
 
 
 app.include_router(router=auth_router.router)
+app.include_router(router=vehicle_router.router)
 
 
 
