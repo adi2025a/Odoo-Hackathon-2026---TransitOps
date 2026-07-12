@@ -16,15 +16,15 @@ export interface Vehicle {
   manufacturer: string;
   year: number;
   vin: string;
-  fuelType: 'Diesel' | 'Electric' | 'Gasoline' | 'CNG';
+  fuelType: string;
   loadCapacity: number; // kg
   odometer: number; // km
   purchaseCost: number;
   insuranceExpiry: string;
   fitnessExpiry: string;
   pucExpiry: string;
-  status: 'Available' | 'On Trip' | 'Maintenance' | 'Retired';
-  region: 'North' | 'South' | 'East' | 'West' | 'Central';
+  status: string;
+  region: string;
   assignedDriverId: string | null;
   photoColor: string; // Tailwind color name for visual cards
 }
@@ -38,15 +38,15 @@ export interface Driver {
   address: string;
   emergencyContact: string;
   licenseNumber: string;
-  licenseCategory: 'Class A CDL' | 'Class B CDL' | 'Class C';
+  licenseCategory: string;
   licenseExpiry: string;
   medicalCertExpiry: string;
-  policeVerification: 'Verified' | 'Pending' | 'Expired';
+  policeVerification: string;
   joiningDate: string;
   experience: number; // years
   safetyScore: number; // 0-100
   currentVehicleId: string | null;
-  status: 'Available' | 'On Trip' | 'Off Duty' | 'Suspended';
+  status: string;
 }
 
 export interface TripEvent {
@@ -62,12 +62,12 @@ export interface Trip {
   stops: string[];
   distance: number; // km
   eta: string;
-  cargoType: 'Electronics' | 'Perishable Foods' | 'Automotive' | 'Chemicals' | 'General Freight' | 'Pharmaceuticals';
+  cargoType: string;
   cargoWeight: number; // kg
-  priority: 'Low' | 'Medium' | 'High' | 'Critical';
+  priority: string;
   vehicleId: string;
   driverId: string;
-  status: 'Draft' | 'Pending' | 'Dispatched' | 'On Trip' | 'Completed' | 'Cancelled';
+  status: string;
   remarks: string;
   timeline: TripEvent[];
   completionData?: {
@@ -95,18 +95,18 @@ export interface FuelLog {
 export interface Expense {
   id: string;
   vehicleId: string;
-  category: 'Fuel' | 'Repair' | 'Maintenance' | 'Insurance' | 'Parking' | 'Toll' | 'Tax' | 'Miscellaneous';
+  category: string;
   amount: number;
   date: string;
   description: string;
-  status: 'Approved' | 'Pending' | 'Rejected';
+  status: string;
 }
 
 export interface MaintenanceRecord {
   id: string;
   vehicleId: string;
-  type: 'Oil Change' | 'Tyre' | 'Brake' | 'Engine' | 'Battery' | 'Inspection';
-  status: 'Scheduled' | 'Active' | 'Completed';
+  type: string;
+  status: string;
   cost: number;
   startDate: string;
   endDate: string | null;
@@ -117,12 +117,12 @@ export interface MaintenanceRecord {
 
 export interface Notification {
   id: string;
-  type: 'Maintenance Due' | 'License Expiry' | 'Trip Assigned' | 'Trip Completed' | 'High Fuel Usage' | 'Alert';
+  type: string;
   title: string;
   message: string;
   date: string;
   read: boolean;
-  severity: 'info' | 'warning' | 'critical';
+  severity: string;
 }
 
 export interface SystemData {

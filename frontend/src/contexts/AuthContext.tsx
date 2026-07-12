@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 export type UserRole = 
   | 'Super Admin' 
@@ -9,22 +9,23 @@ export type UserRole =
   | 'Financial Analyst';
 
 export interface User {
+  id: string;
   name: string;
   email: string;
   role: UserRole;
   avatar: string;
-  driverId?: string; // Links driver user to their driver profile
+  driverId?: string;
 }
 
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: User | null;
-  login: (email: string, role: UserRole, rememberMe: boolean) => Promise<void>;
-  logout: () => void;
+  token: string | null;
+  login: (email: string, password: string, rememberMe: boolean) => Promise<void>;
+  logout: () => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
-  resetPassword: (email: string, code: string) => Promise<void>;
-  switchRole: (role: UserRole) => void;
+  resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
   hasAccess: (module: string) => boolean;
 }
 
@@ -58,103 +59,104 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   ]
 };
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
+  // Restore session from localStorage on mount
   useEffect(() => {
-    // Simulate reading session
     const loadSession = () => {
-      const savedAuth = localStorage.getItem('transitops-auth');
+      const savedToken = localStorage.getItem('transitops-token');
       const savedUser = localStorage.getItem('transitops-user');
-      
-      if (savedAuth === 'true' && savedUser) {
+
+      if (savedToken && savedUser) {
         try {
+          setToken(savedToken);
           setUser(JSON.parse(savedUser));
           setIsAuthenticated(true);
         } catch {
-          localStorage.removeItem('transitops-auth');
+          localStorage.removeItem('transitops-token');
           localStorage.removeItem('transitops-user');
         }
       }
       setIsLoading(false);
     };
 
-    const timer = setTimeout(loadSession, 1200); // Elegant dashboard loading effect
+    const timer = setTimeout(loadSession, 600);
     return () => clearTimeout(timer);
   }, []);
 
-  const login = async (email: string, role: UserRole, rememberMe: boolean) => {
+  const login = async (email: string, password: string, rememberMe: boolean) => {
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 800)); // Server lag simulation
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, rememberMe }),
+        credentials: 'include',
+      });
 
-    const nameMap: Record<UserRole, string> = {
-      'Super Admin': 'Alex Rivera',
-      'Fleet Manager': 'Marcus Vance',
-      'Dispatcher': 'Elena Rostova',
-      'Driver': 'John Miller',
-      'Safety Officer': 'Chief Safety Officer Davis',
-      'Financial Analyst': 'Sarah Jenkins'
-    };
+      const data = await res.json();
 
-    const mockUser: User = {
-      name: nameMap[role],
-      email: email || `${role.toLowerCase().replace(' ', '')}@transitops.com`,
-      role,
-      avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${nameMap[role]}`,
-      driverId: role === 'Driver' ? 'DRV-1001' : undefined
-    };
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Login failed');
+      }
 
-    setUser(mockUser);
-    setIsAuthenticated(true);
-    setIsLoading(false);
+      const { accessToken, user: loggedInUser } = data.data;
 
-    if (rememberMe) {
-      localStorage.setItem('transitops-auth', 'true');
-      localStorage.setItem('transitops-user', JSON.stringify(mockUser));
+      setToken(accessToken);
+      setUser(loggedInUser);
+      setIsAuthenticated(true);
+
+      if (rememberMe) {
+        localStorage.setItem('transitops-token', accessToken);
+        localStorage.setItem('transitops-user', JSON.stringify(loggedInUser));
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const logout = () => {
+  const logout = useCallback(async () => {
+    try {
+      if (token) {
+        await fetch(`${API_BASE}/auth/logout`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
+        });
+      }
+    } catch { /* ignore network errors on logout */ }
+
     setIsAuthenticated(false);
     setUser(null);
-    localStorage.removeItem('transitops-auth');
+    setToken(null);
+    localStorage.removeItem('transitops-token');
     localStorage.removeItem('transitops-user');
-  };
+  }, [token]);
 
   const forgotPassword = async (email: string) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log(`Mock reset password instructions sent to: ${email}`);
+    const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Request failed');
   };
 
-  const resetPassword = async (email: string, code: string) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log(`Password reset for ${email} with code ${code}`);
-  };
-
-  const switchRole = (role: UserRole) => {
-    if (!user) return;
-    const nameMap: Record<UserRole, string> = {
-      'Super Admin': 'Alex Rivera',
-      'Fleet Manager': 'Marcus Vance',
-      'Dispatcher': 'Elena Rostova',
-      'Driver': 'John Miller',
-      'Safety Officer': 'Chief Safety Officer Davis',
-      'Financial Analyst': 'Sarah Jenkins'
-    };
-
-    const updated: User = {
-      ...user,
-      name: nameMap[role],
-      role,
-      avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${nameMap[role]}`,
-      driverId: role === 'Driver' ? 'DRV-1001' : undefined
-    };
-    setUser(updated);
-    if (localStorage.getItem('transitops-auth') === 'true') {
-      localStorage.setItem('transitops-user', JSON.stringify(updated));
-    }
+  const resetPassword = async (email: string, code: string, newPassword: string) => {
+    const res = await fetch(`${API_BASE}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code, newPassword }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Reset failed');
   };
 
   const hasAccess = (module: string): boolean => {
@@ -168,12 +170,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{ 
         isAuthenticated, 
         isLoading, 
-        user, 
+        user,
+        token,
         login, 
         logout, 
         forgotPassword, 
         resetPassword,
-        switchRole,
         hasAccess
       }}
     >
