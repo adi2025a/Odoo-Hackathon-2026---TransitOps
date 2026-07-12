@@ -320,11 +320,11 @@ backend/
 
 # 📸 Screenshots
 
-![Alternative text description](/readme_preview_images/Screenshot from 2026-07-12 16-33-38.png)
-![Alternative text description](readme_preview_images/Screenshot from 2026-07-12 16-33-46.png)
-![Alternative text description](readme_preview_images/Screenshot from 2026-07-12 16-33-57.png)
-![Alternative text description](readme_preview_images/Screenshot from 2026-07-12 16-34-15.png)
-![Alternative text description](readme_preview_images/Screenshot from 2026-07-12 16-34-15.png)
+![Alternative text description](./readme_preview_images/Screenshot from 2026-07-12 16-33-38.png)
+![Alternative text description](./readme_preview_images/Screenshot from 2026-07-12 16-33-46.png)
+![Alternative text description](./readme_preview_images/Screenshot from 2026-07-12 16-33-57.png)
+![Alternative text description](./readme_preview_images/Screenshot from 2026-07-12 16-34-15.png)
+![Alternative text description](./readme_preview_images/Screenshot from 2026-07-12 16-34-15.png)
 
 ---
 
@@ -360,39 +360,35 @@ If we continue developing TransitOps, we plan to add:
 
 ---
 
-# ❤️ Team TransitOps
+# ❤️ Team Introduction
 
 > **"From idea to enterprise prototype in just 8 hours."**
 
-Built by [Vansh Mittal](https://github.com/vanshMittal37) , Built by [Yash Gupta](https://github.com/Yashgupta174) and Built by [Aditya Singh](https://github.com/adi2025a)
+Built by ,
 
 <table>
   <tr>
     <td align="center">
       <a href="https://github.com/vanshMittal37">
         <img src="https://github.com/vanshMittal37.png?size=100" width="100px;" alt="User Profile"/><br />
-        <sub><b>User Name</b></sub>
+        <sub><b>Vansh Mittal</b></sub>
       </a>
     </td>
     <td align="center">
       <a href="https://github.com/Yashgupta174">
         <img src="https://github.com/Yashgupta174.png?size=100" width="100px;" alt="User Profile"/><br />
-        <sub><b>User Name</b></sub>
+        <sub><b>Yash Gupta</b></sub>
       </a>
     </td>
     <td align="center">
       <a href="https://github.com/adi2025a">
         <img src="https://github.com/adi2025a.png?size=100" width="100px;" alt="User Profile"/><br />
-        <sub><b>User Name</b></sub>
+        <sub><b>Aditya Singh</b></sub>
       </a>
     </td>
   </tr>
   
 </table>
-
-# TransitOps Fleet Management System
-
-TransitOps is a full-featured real-time fleet, trip, and analytics management system built using Node.js, Express, TypeScript, MongoDB, and React with Vite.
 
 ---
 # Project-Setup 
