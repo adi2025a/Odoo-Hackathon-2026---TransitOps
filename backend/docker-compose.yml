@@ -3,7 +3,7 @@ services:
   # 1. Database Service
   db:
     image: postgres:16
-    container_name: nodify-postgres
+    container_name: transitops-postgres-db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: mysecretpassword
@@ -13,7 +13,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - nodify-network
+      - transitops-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -37,7 +37,7 @@ services:
       db:
         condition: service_healthy
     networks:
-      - nodify-network
+      - transitops-network
     
     develop:
       watch:
@@ -55,4 +55,4 @@ volumes:
   postgres_data:
 
 networks:
-  nodify-network:
+  transitops-network:
