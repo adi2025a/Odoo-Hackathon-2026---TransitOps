@@ -321,9 +321,13 @@ backend/
 # 📸 Screenshots
 
 ![Alternative text description](./readme_preview_images/Screenshot from 2026-07-12 16-33-38.png)
+
 ![Alternative text description](./readme_preview_images/Screenshot from 2026-07-12 16-33-46.png)
+
 ![Alternative text description](./readme_preview_images/Screenshot from 2026-07-12 16-33-57.png)
+
 ![Alternative text description](./readme_preview_images/Screenshot from 2026-07-12 16-34-15.png)
+
 ![Alternative text description](./readme_preview_images/Screenshot from 2026-07-12 16-34-15.png)
 
 ---
