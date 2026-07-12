@@ -320,15 +320,15 @@ backend/
 
 # 📸 Screenshots
 
-![Alternative text description](./readme_preview_images/Screenshot from 2026-07-12 16-33-38.png)
+![Alternative text description](./readme_preview_images/1.png)
 
-![Alternative text description](./readme_preview_images/Screenshot from 2026-07-12 16-33-46.png)
+![Alternative text description](./readme_preview_images/2.png)
 
-![Alternative text description](./readme_preview_images/Screenshot from 2026-07-12 16-33-57.png)
+![Alternative text description](./readme_preview_images/3.png)
 
-![Alternative text description](./readme_preview_images/Screenshot from 2026-07-12 16-34-15.png)
+![Alternative text description](./readme_preview_images/4.png)
 
-![Alternative text description](./readme_preview_images/Screenshot from 2026-07-12 16-34-15.png)
+![Alternative text description](./readme_preview_images/5.png)
 
 ---
 
