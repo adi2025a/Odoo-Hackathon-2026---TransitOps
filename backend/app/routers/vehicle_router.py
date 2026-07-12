@@ -11,11 +11,6 @@ router = APIRouter(
 )
 
 
-
-# 2. Mock In-Memory Database (Replace this with your actual database logic)
-mock_db = {}
-id_counter = 1
-
 # 3. API Endpoints
 @router.get("", response_model=List[VehicleResponse])
 def get_vehicles(db: Session = Depends(get_db)):
