@@ -320,15 +320,11 @@ backend/
 
 # 📸 Screenshots
 
-> *(Add your UI screenshots here.)*
-
-- Login
-- Dashboard
-- Fleet
-- Drivers
-- Trips
-- Maintenance
-- Analytics
+![Alternative text description](/readme_preview_images/Screenshot from 2026-07-12 16-33-38.png)
+![Alternative text description](readme_preview_images/Screenshot from 2026-07-12 16-33-46.png)
+![Alternative text description](readme_preview_images/Screenshot from 2026-07-12 16-33-57.png)
+![Alternative text description](readme_preview_images/Screenshot from 2026-07-12 16-34-15.png)
+![Alternative text description](readme_preview_images/Screenshot from 2026-07-12 16-34-15.png)
 
 ---
 
@@ -368,7 +364,31 @@ If we continue developing TransitOps, we plan to add:
 
 > **"From idea to enterprise prototype in just 8 hours."**
 
-TransitOps was built during our college hackathon to demonstrate how technology can modernize transport operations through workflow automation, intelligent validations, and data-driven decision-making.
+Built by [Vansh Mittal](https://github.com/vanshMittal37) , Built by [Yash Gupta](https://github.com/Yashgupta174) and Built by [Aditya Singh](https://github.com/adi2025a)
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/vanshMittal37">
+        <img src="https://github.com/vanshMittal37.png?size=100" width="100px;" alt="User Profile"/><br />
+        <sub><b>User Name</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/Yashgupta174">
+        <img src="https://github.com/Yashgupta174.png?size=100" width="100px;" alt="User Profile"/><br />
+        <sub><b>User Name</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/adi2025a">
+        <img src="https://github.com/adi2025a.png?size=100" width="100px;" alt="User Profile"/><br />
+        <sub><b>User Name</b></sub>
+      </a>
+    </td>
+  </tr>
+  
+</table>
 
 # TransitOps Fleet Management System
 
